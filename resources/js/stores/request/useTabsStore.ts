@@ -21,6 +21,7 @@ import {
 import { buildRequestUrl, getDefaultPayloadTypeForRoute } from '@/utils/request';
 import { generateValueFromType } from '@/utils/value-generator/generateValueFromType';
 import { defineStore } from 'pinia';
+import { v4 as uuidv4 } from 'uuid';
 import { computed, ref } from 'vue';
 
 /**
@@ -228,7 +229,7 @@ export const useTabsStore = defineStore(
                 return;
             }
 
-            const id = crypto.randomUUID();
+            const id = uuidv4();
             const newTab: Tab = {
                 id,
                 title: route.shortEndpoint || route.endpoint,
@@ -514,7 +515,7 @@ export const useTabsStore = defineStore(
         const restoreFromSharedPayload = (payload: ShareableLinkPayload) => {
             const newRequest = createRequestFromShearableLinkPayload(payload);
 
-            const id = crypto.randomUUID();
+            const id = uuidv4();
             const newTab: Tab = {
                 id,
                 title: payload.endpoint,
