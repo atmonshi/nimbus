@@ -91,7 +91,7 @@
     --color-secondary-foreground: oklch(98.43% 0.0017 247.84);
     --color-accent: oklch(27.84% 0.0296 256.85);
     --color-accent-foreground: oklch(98.43% 0.0017 247.84);
-    --color-destructive: oklch(39.59% 0.1331 25.72);
+    --color-destructive: var(--color-rose-700);
     --color-destructive-foreground: oklch(98.43% 0.0017 247.84);
 
     /* Status Colors */

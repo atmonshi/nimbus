@@ -25,7 +25,11 @@ export function buildRequestUrl(
             return;
         }
 
-        appendQueryParam(url.searchParams, parameter.key, parameter.value);
+        appendQueryParam(
+            url.searchParams,
+            parameter.key,
+            parameter.value?.resolved ?? '',
+        );
     });
 
     return url.toString();

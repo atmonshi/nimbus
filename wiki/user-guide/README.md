@@ -27,6 +27,7 @@ This guide covers everything you need to know about using Nimbus to test and exp
 - [Advanced Features](#advanced-features)
     - [Global Headers](#global-headers)
     - [Value Generators](#value-generators)
+    - [Environment Variables](#environment-variables)
     - [Auto-Fill Payloads](#auto-fill-payloads)
     - [Transaction Mode](#transaction-mode)
     - [Export to cURL](#export-to-curl)
@@ -340,8 +341,49 @@ Generate realistic values for headers and parameters on-demand.
 - Dates (various formats).
 - Phone numbers.
 - URLs.
-- URLs.
 - And more...
+
+### Environment Variables
+
+Although Nimbus provides a lot of convenience out of the box like user impersonation and making requests as currently logged in users, support for environment variables is provided as an additional power feature. They allow you to manage sets of variables for different environments (e.g., Development, Staging, Production). Use them to switch between API keys, tokens, or any other dynamic configuration without manually editing each request.
+
+#### Managing Environments
+
+You can manage your environment variables from the **Environments** page, accessible via the sidebar.
+
+![Environment Management](./assets/env-page.png)
+
+1. **Collections**: Group related variables into named collections (e.g., "Development", "Production").
+2. **Active Collection**: Select a collection from the sidebar to activate its variables across the whole application.
+3. **Variable Editor**: Each variable consists of a key, a value, and an enabled toggle.
+
+#### Using Variables
+
+To reference an environment variable, use the double-brace syntax: `{{ variable_name }}`. Nimbus provides real-time resolution as you type.
+
+![Environment Variable Tooltip](./assets/env-variables-resolved-value.png)
+
+#### Supported Inputs
+
+Environment variables are supported in nearly all input fields where dynamic values are useful:
+
+| Location | Supported Inputs |
+|----------|------------------|
+| **Request URL** | The main endpoint bar, including host, path, and query segments. |
+| **Authentication** | Username and password for Basic Auth, and Bearer tokens. |
+| **Headers** | Header values (but not keys). |
+| **Query Parameters** | Parameter values (but not keys). |
+| **Request Body** | The entire content of JSON and Plain Text editors. |
+
+#### Visual Indicators and Feedback
+
+Nimbus provides immediate visual feedback on the status of your environment variables:
+
+- **Grey**: The variable exists in the active collection and is successfully resolved.
+- **Orange**: The variable is found, but its value is currently empty.
+- **Red**: The variable cannot be found in the currently selected collection.
+
+![Variable Resolution States](./assets/env-variables-client-different-states.png)
 
 ### Transaction Mode
 

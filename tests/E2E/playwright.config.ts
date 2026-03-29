@@ -30,6 +30,7 @@ export default defineConfig({
         screenshot: "only-on-failure",
         testIdAttribute: "data-testid",
         video: "retain-on-failure",
+        actionTimeout: process.env.CI ? 0 : 2_000,
     },
 
     /* Configure projects for major browsers */

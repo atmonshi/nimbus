@@ -15,6 +15,7 @@ import {
 } from '@/components/base/select';
 import { AppSwitch } from '@/components/base/switch';
 import { AppTooltipWrapper } from '@/components/base/tooltip';
+import EnvironmentAwareInput from '@/components/common/EnvironmentAwareInput.vue';
 import { useKeyValueParameters } from '@/composables/ui/useKeyValueParameters';
 import { type ParameterContract } from '@/interfaces/ui';
 import { useValueGeneratorStore } from '@/stores';
@@ -149,7 +150,7 @@ const handleDeleteParameter = (index: number) => {
                 variant="ghost"
                 size="xs"
                 class="px-panel h-full -translate-x-0.5 rounded-none text-xs"
-                :disabled="parameters.length === 0"
+                :disabled="parameters.length <= 1"
                 data-testid="enable-all-button"
                 @click="toggleAllParametersEnabledState"
             >
@@ -165,7 +166,7 @@ const handleDeleteParameter = (index: number) => {
                 :class="{
                     '!text-destructive hover:text-destructive/90': deletingAll,
                 }"
-                :disabled="parameters.length === 0"
+                :disabled="parameters.length <= 1"
                 data-testid="delete-all-button"
                 @click="deleteAllParameters"
             >
@@ -219,14 +220,15 @@ const handleDeleteParameter = (index: number) => {
                     />
 
                     <!-- Value Input -->
-                    <AppInput
+                    <EnvironmentAwareInput
                         v-model="parameter.value"
                         placeholder="Value"
-                        class="pl-panel h-full flex-1 rounded-none border-0 border-r shadow-none focus:ring-0 focus-visible:ring-0"
                         :disabled="!parameter.enabled"
                         name="kv-value"
                         data-testid="kv-value"
                         autocomplete="off"
+                        class="border-r"
+                        input-class="pl-panel h-full flex-1 rounded-none border-0 border-r shadow-none focus:ring-0 focus-visible:ring-0"
                         @focus="handleValueInputFocus(index, $event.target)"
                         @blur="handleValueInputBlur"
                     />

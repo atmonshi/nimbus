@@ -4,6 +4,7 @@
 
 export {
     useConfigStore,
+    useEnvironmentVariablesStore,
     useErrorStore,
     useSettingsStore,
     useSharedStateStore,

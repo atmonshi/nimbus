@@ -1,4 +1,5 @@
 import type { AuthorizationContract } from '@/interfaces/auth/authorization';
+import type { ResolvableString } from '@/interfaces/common/resolvable-string';
 import type { RouteDefinition } from '@/interfaces/routes/routes';
 import type { ParameterContract } from '@/interfaces/ui';
 import type { JSONSchema7 } from 'json-schema';
@@ -20,7 +21,7 @@ export interface PendingRequest {
     method: string;
 
     /** API endpoint URL path */
-    endpoint: string;
+    endpoint: ResolvableString;
 
     /** HTTP headers to include with the request */
     headers: ParameterContract[];
@@ -46,7 +47,7 @@ export interface PendingRequest {
      */
     body: {
         [_key in string]?: {
-            [_key in RequestBodyTypeEnum]?: FormData | string | null;
+            [_key in RequestBodyTypeEnum]?: FormData | ResolvableString | null;
         };
     };
 
@@ -110,9 +111,9 @@ export interface PendingRequest {
 
 export interface Request {
     method: string;
-    endpoint: string;
+    endpoint: ResolvableString;
     headers: ParameterContract[];
-    body: FormData | string | null;
+    body: FormData | ResolvableString | null;
     queryParameters: ParameterContract[];
     payloadType: RequestBodyTypeEnum;
     authorization: AuthorizationContract;

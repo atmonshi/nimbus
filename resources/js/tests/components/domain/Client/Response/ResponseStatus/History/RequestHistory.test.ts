@@ -68,7 +68,9 @@ vi.mock(
 
 const createLog = (endpoint: string, timestamp: number): RequestLog =>
     createMockRequestLog({
-        request: { endpoint } as unknown as Request,
+        request: {
+            endpoint: { raw: endpoint, resolved: endpoint },
+        } as unknown as Request,
         response: { timestamp } as unknown as Response,
     });
 

@@ -77,9 +77,10 @@ if (! array_key_exists($packageName, $composerJson['require'])) {
 }
 
 /**
- * Force the package version to the requested dev branch.
+ * Use a generic dev constraint so the local path repository can be installed
+ * regardless of the current branch name.
  */
-$composerJson['require'][$packageName] = "dev-{$branchName}";
+$composerJson['require'][$packageName] = '*@dev';
 
 /**
  * Write back composer.json with stable formatting.

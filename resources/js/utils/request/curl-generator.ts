@@ -1,5 +1,6 @@
 import type { ParameterContract } from '@/interfaces';
 import type { AuthorizationContract } from '@/interfaces/auth/authorization';
+import type { ResolvableString } from '@/interfaces/common/resolvable-string';
 import { AuthorizationType } from '@/interfaces/generated';
 import type { PendingRequest } from '@/interfaces/http';
 import { RequestBodyTypeEnum } from '@/interfaces/http';
@@ -29,7 +30,7 @@ export function generateCurlCommand(
         getEffectiveQueryParametersAndBodyValue(request);
 
     const methodPart = buildHttpMethodPart(request.method);
-    const fullUrl = buildRequestUrl(baseUrl, request.endpoint, queryParameters);
+    const fullUrl = buildRequestUrl(baseUrl, request.endpoint.resolved, queryParameters);
     const headerParts = buildRequestHeaderParts(request);
     const authPart = buildAuthorizationHeaderPart(request.authorization);
     const bodyParts = buildRequestBodyParts(requestBody);
@@ -50,7 +51,7 @@ export function generateCurlCommand(
 
 function getEffectiveQueryParametersAndBodyValue(request: PendingRequest): {
     queryParameters: ParameterContract[];
-    requestBody: FormData | string | null;
+    requestBody: FormData | ResolvableString | null;
 } {
     const requestBody = getRequestEffectiveBody(request);
 
@@ -98,7 +99,11 @@ function buildHttpMethodPart(method: string): string | null {
 function buildRequestHeaderParts(request: PendingRequest): string[] {
     const validHeaders = getValidHeaders(request);
 
-    const headerParts = validHeaders.map(header => `-H "${header.key}: ${header.value}"`);
+    const headerParts = validHeaders.map(function (header) {
+        const headerValue = header.value.resolved;
+
+        return `-H "${header.key}: ${headerValue}"`;
+    });
 
     // Add Content-Type header for payload types with MIME types if not already present
     const mimeType = getMimeTypeForPayloadType(request.payloadType);
@@ -137,7 +142,7 @@ function convertKeyValuePairsToQueryParameters(
         type: ParameterType.Text,
         enabled: true,
         key,
-        value,
+        value: { raw: value, resolved: value },
     }));
 }
 
@@ -165,7 +170,7 @@ function buildAuthHeader(authorization: AuthorizationContract): string | null {
 
     switch (authorization.type) {
         case AuthorizationType.Bearer:
-            return `Authorization: Bearer ${authorization.value}`;
+            return `Authorization: Bearer ${authorization.value.resolved}`;
 
         case AuthorizationType.Basic:
             return buildBasicAuthHeader(authorization.value);
@@ -184,16 +189,20 @@ function buildAuthHeader(authorization: AuthorizationContract): string | null {
  * Builds Basic authentication header.
  */
 function buildBasicAuthHeader(authValue: {
-    username: string;
-    password: string;
+    username: ResolvableString;
+    password: ResolvableString;
 }): string | null {
     // btoa() encodes username:password string to Base64 for HTTP Basic Authentication
-    const credentials = btoa(`${authValue.username}:${authValue.password}`);
+    const credentials = btoa(
+        `${authValue.username.resolved}:${authValue.password.resolved}`,
+    );
 
     return `Authorization: Basic ${credentials}`;
 }
 
-function getRequestEffectiveBody(request: PendingRequest): FormData | string | null {
+function getRequestEffectiveBody(
+    request: PendingRequest,
+): FormData | ResolvableString | null {
     const bodyData = request.body;
 
     const methodBodies = bodyData[request.method];
@@ -202,7 +211,7 @@ function getRequestEffectiveBody(request: PendingRequest): FormData | string | n
         return null;
     }
 
-    const body = methodBodies[request.payloadType];
+    const body = methodBodies[request.payloadType ?? RequestBodyTypeEnum.EMPTY];
 
     if (body === undefined) {
         return null;
@@ -214,7 +223,9 @@ function getRequestEffectiveBody(request: PendingRequest): FormData | string | n
 /**
  * Builds request body parts.
  */
-function buildRequestBodyParts(requestBody: FormData | string | null): string[] {
+function buildRequestBodyParts(
+    requestBody: FormData | ResolvableString | null,
+): string[] {
     if (requestBody === null) {
         return [];
     }
@@ -223,15 +234,11 @@ function buildRequestBodyParts(requestBody: FormData | string | null): string[] 
 }
 
 function transformRequestBodyToKeyValuePairs(
-    bodyValue: string | FormData | null,
+    bodyValue: ResolvableString | FormData | null,
     payloadType: RequestBodyTypeEnum,
 ): Record<string, string> {
     if (bodyValue === null) {
         return {};
-    }
-
-    if (typeof bodyValue === 'string' && payloadType === RequestBodyTypeEnum.JSON) {
-        return JSON.parse(bodyValue);
     }
 
     if (bodyValue instanceof FormData) {
@@ -243,7 +250,13 @@ function transformRequestBodyToKeyValuePairs(
         );
     }
 
-    return bodyValue.split('\n').reduce<Record<string, string>>(function (
+    const resolvedBodyValue = bodyValue.resolved;
+
+    if (payloadType === RequestBodyTypeEnum.JSON) {
+        return JSON.parse(resolvedBodyValue);
+    }
+
+    return resolvedBodyValue.split('\n').reduce<Record<string, string>>(function (
         carry,
         bodyLine,
     ) {
@@ -258,12 +271,14 @@ function transformRequestBodyToKeyValuePairs(
 /**
  * Formats body value based on payload type.
  */
-function convertBodyValueToRequestParts(bodyValue: string | FormData): string[] {
-    if (typeof bodyValue === 'string') {
-        return [`-d '${bodyValue}'`];
+function convertBodyValueToRequestParts(
+    bodyValue: ResolvableString | FormData,
+): string[] {
+    if (bodyValue instanceof FormData) {
+        return convertFormDataToCUrlFields(bodyValue);
     }
 
-    return convertFormDataToCUrlFields(bodyValue);
+    return [`-d '${bodyValue.resolved}'`];
 }
 
 /**

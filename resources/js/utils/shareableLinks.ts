@@ -4,8 +4,11 @@
  * Uses pako (gzip/deflate) for compression to keep URLs within browser limits.
  */
 
+import type { AuthorizationContract } from '@/interfaces';
+import type { ResolvableString } from '@/interfaces/common/resolvable-string';
+import { AuthorizationType } from '@/interfaces/generated';
 import type { RequestLog } from '@/interfaces/history/logs';
-import type { PendingRequest, Response } from '@/interfaces/http';
+import type { PendingRequest, RequestBodyTypeEnum, Response } from '@/interfaces/http';
 import type { ShareableLinkPayload } from '@/interfaces/share';
 import pako from 'pako';
 
@@ -26,21 +29,21 @@ export function encodeShareablePayload(
 ): string {
     const payload: ShareableLinkPayload = {
         method: pendingRequest.method,
-        endpoint: pendingRequest.endpoint,
+        endpoint: pendingRequest.endpoint.resolved,
         headers: pendingRequest.headers.map(header => ({
             key: header.key,
-            value: header.value,
+            value: header.value.resolved,
         })),
         queryParameters: pendingRequest.queryParameters.map(param => ({
             key: param.key,
-            value: param.value,
+            value: param.value.resolved,
             type: param.type,
         })),
-        body: pendingRequest.body,
+        body: resolveBody(pendingRequest.body),
         payloadType: pendingRequest.payloadType,
         authorization: {
             type: pendingRequest.authorization.type,
-            value: pendingRequest.authorization.value,
+            value: buildAuthorizationValue(pendingRequest.authorization.value),
         },
         applicationKey,
     };
@@ -77,12 +80,8 @@ export function encodeShareablePayload(
 
     // Convert to base64 with URL-safe characters
     const base64 = btoa(String.fromCharCode.apply(null, Array.from(compressed)));
-    const urlSafeBase64 = base64
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
 
-    return urlSafeBase64;
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /**
@@ -93,4 +92,126 @@ export function buildShareableUrl(basePath: string, encodedPayload: string): str
     const cleanBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;
 
     return `${baseUrl}${cleanBasePath}?share=${encodedPayload}`;
+}
+
+export function reconstructInternalBodyFromSharableLinkBody(
+    inbound: ShareableLinkPayload['body'],
+): PendingRequest['body'] {
+    const reconstructedBody: PendingRequest['body'] = {};
+
+    for (const [method, contents] of Object.entries(inbound)) {
+        if (!contents) {
+            reconstructedBody[method] = undefined;
+            continue;
+        }
+
+        const methodBody: Record<string, FormData | ResolvableString | null> = {};
+        for (const [type, value] of Object.entries(contents)) {
+            if (typeof value === 'string') {
+                methodBody[type] = { raw: value, resolved: value };
+            } else {
+                methodBody[type] = value as FormData | null;
+            }
+        }
+        reconstructedBody[method] = methodBody;
+    }
+
+    return reconstructedBody;
+}
+
+export function reconstructionInternalAuthorizationFromSharableLinkAuthorization(
+    inbound: ShareableLinkPayload['authorization'],
+): PendingRequest['authorization'] {
+    const inboundType = inbound.type as AuthorizationContract['type'];
+
+    const inboundValue = inbound.value as unknown;
+
+    switch (inboundType) {
+        case AuthorizationType.Basic:
+            return {
+                type: AuthorizationType.Basic,
+                value: {
+                    username: {
+                        // @ts-expect-error safe restoration logic.
+                        raw: inboundValue?.username ?? '',
+                        // @ts-expect-error safe restoration logic.
+                        resolved: inboundValue?.username ?? '',
+                    },
+                    password: {
+                        // @ts-expect-error safe restoration logic.
+                        raw: inboundValue?.password ?? '',
+                        // @ts-expect-error safe restoration logic.
+                        resolved: inboundValue?.password ?? '',
+                    },
+                },
+            };
+
+        case AuthorizationType.Bearer:
+            return {
+                type: AuthorizationType.Bearer,
+                value: {
+                    // @ts-expect-error safe restoration logic.
+                    raw: inboundValue,
+                    // @ts-expect-error safe restoration logic.
+                    resolved: inboundValue,
+                },
+            };
+
+        default:
+            return {
+                type: inboundType,
+                value: inboundValue as AuthorizationContract['value'],
+            } as PendingRequest['authorization'];
+    }
+}
+
+function buildAuthorizationValue(value: AuthorizationContract['value']) {
+    if (typeof value === 'object' && 'username' in value) {
+        return {
+            username: value.username.resolved,
+            password: value.password.resolved,
+        };
+    }
+
+    if (typeof value !== 'object') {
+        return value;
+    }
+
+    return value.resolved;
+}
+
+function resolveBody(body: {
+    [method: string]:
+        | { [_key in RequestBodyTypeEnum]?: FormData | ResolvableString | null }
+        | undefined;
+}) {
+    const resolvedBody: Record<
+        string,
+        Record<string, FormData | string | null | undefined> | undefined
+    > = {};
+
+    for (const [method, contents] of Object.entries(body)) {
+        if (!contents) {
+            resolvedBody[method] = undefined;
+
+            continue;
+        }
+
+        const methodBody: Record<string, FormData | string | null | undefined> = {};
+
+        for (const [type, value] of Object.entries(contents)) {
+            if (value instanceof FormData) {
+                methodBody[type] = value;
+
+                continue;
+            }
+
+            methodBody[type] =
+                value !== null && value !== undefined ? value.resolved : value;
+        }
+
+        resolvedBody[method] = methodBody;
+    }
+
+    return resolvedBody;
 }

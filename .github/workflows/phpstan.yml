@@ -14,8 +14,6 @@ jobs:
       - name: Checkout code
         if: ${{ !env.ACT }}
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Check for changes
         id: filter
@@ -43,4 +41,3 @@ jobs:
       - name: Run PHPStan
         if: steps.filter.outputs.phpstan == 'true'
         run: composer phpstan
-

@@ -24,7 +24,10 @@ const props = defineProps<AppPanelSubHeaderProps>();
 <template>
     <div
         :class="
-            cn('px-panel h-sub-toolbar flex items-center justify-between', props.class)
+            cn(
+                'px-panel min-h-sub-toolbar md:h-sub-toolbar flex items-center justify-between',
+                props.class,
+            )
         "
     >
         <span class="text-subtle-foreground text-xs">

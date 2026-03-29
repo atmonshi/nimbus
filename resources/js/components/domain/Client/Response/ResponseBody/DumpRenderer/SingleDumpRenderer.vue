@@ -157,7 +157,7 @@ const nestedValues: ComputedRef<
             />
 
             <div v-else>
-                <small class="text-rose-500 dark:text-rose-700">
+                <small class="text-destructive">
                     Invalid dump value type `{{ dump.type }}` received. Please create a
                     <a
                         class="underline"
@@ -232,7 +232,7 @@ const nestedValues: ComputedRef<
                     />
 
                     <div v-else>
-                        <small class="text-rose-500 dark:text-rose-700">
+                        <small class="text-destructive">
                             Invalid nested value type `{{ dump.type }}` received. Please
                             create a
                             <a

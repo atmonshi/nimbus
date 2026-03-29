@@ -46,19 +46,7 @@ function convertParametersArrayToFormData(parameters: ParameterContract[]): Form
     const formData = new FormData();
 
     for (const parameter of parameters) {
-        if (parameter.value === null) {
-            formData.set(parameter.key, '');
-
-            continue;
-        }
-
-        if ((parameter.value as unknown) instanceof Blob) {
-            formData.set(parameter.key, parameter.value);
-
-            continue;
-        }
-
-        formData.set(parameter.key, String(parameter.value));
+        formData.set(parameter.key, parameter.value.raw);
     }
 
     return formData;
@@ -75,7 +63,7 @@ function convertFormDataToParametersArray(form: FormData): ParameterContract[] {
             parameters.push({
                 type: ParameterType.File,
                 key: key,
-                value: value.name,
+                value: { raw: value.name, resolved: value.name },
                 enabled: true,
             });
 
@@ -85,7 +73,7 @@ function convertFormDataToParametersArray(form: FormData): ParameterContract[] {
         parameters.push({
             type: ParameterType.Text,
             key: key,
-            value: value,
+            value: { raw: value, resolved: value },
             enabled: true,
         });
     });

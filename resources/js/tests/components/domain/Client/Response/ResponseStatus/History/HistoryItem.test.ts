@@ -41,7 +41,7 @@ describe('HistoryItem', () => {
         durationInMs: 150,
         request: {
             method: 'GET',
-            endpoint: '/api/test',
+            endpoint: { raw: '/api/test', resolved: '/api/test' },
         } as unknown as Request,
         response: {
             statusCode: 200,

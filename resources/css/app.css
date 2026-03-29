@@ -63,6 +63,10 @@
         max-height: var(--sub-toolbar-height);
     }
 
+    .min-h-sub-toolbar {
+        min-height: var(--sub-toolbar-height);
+    }
+
     /*
      * Panel content padding utilities.
      */

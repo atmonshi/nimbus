@@ -12,9 +12,7 @@ export interface UseRequestAuthorizationResult {
         traditional: readonly AuthorizationTypeItem[];
     };
     updateAuthorizationType: (newValue: AuthorizationType) => void;
-    updateCurrentAuthorizationValue: (
-        newValue: string | number | { username: string; password: string },
-    ) => void;
+    updateCurrentAuthorizationValue: (newValue: AuthorizationContract['value']) => void;
     saveAuthorizationToStore: () => void;
 }
 
@@ -41,11 +39,14 @@ export function useRequestAuthorization(): UseRequestAuthorizationResult {
         [AuthorizationType.None]: { type: AuthorizationType.None },
         [AuthorizationType.Bearer]: {
             type: AuthorizationType.Bearer,
-            value: '',
+            value: { raw: '', resolved: '' },
         },
         [AuthorizationType.Basic]: {
             type: AuthorizationType.Basic,
-            value: { username: '', password: '' },
+            value: {
+                username: { raw: '', resolved: '' },
+                password: { raw: '', resolved: '' },
+            },
         },
         [AuthorizationType.CurrentUser]: {
             type: AuthorizationType.CurrentUser,
@@ -124,7 +125,7 @@ export function useRequestAuthorization(): UseRequestAuthorizationResult {
     };
 
     const updateCurrentAuthorizationValue = (
-        newValue: string | number | { username: string; password: string },
+        newValue: AuthorizationContract['value'],
     ) => {
         const currentAuth = requestStore.pendingRequestData?.authorization ?? {
             type: AuthorizationType.CurrentUser,

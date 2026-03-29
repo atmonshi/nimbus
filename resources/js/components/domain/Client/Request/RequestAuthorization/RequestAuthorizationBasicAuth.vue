@@ -3,57 +3,27 @@
  * @component RequestAuthorizationBasicAuth
  * @description Input fields for Basic Authentication (username/password).
  */
-import { AppInput } from '@/components/base/input';
-import { ref, watch } from 'vue';
+import EnvironmentAwareInput from '@/components/common/EnvironmentAwareInput.vue';
+import type { ResolvableString } from '@/interfaces/common/resolvable-string';
 
 /*
  * Types & Interfaces.
  */
 
 export type AppRequestAuthorizationBasicAuthModel = {
-    username: string;
-    password: string;
+    username: ResolvableString;
+    password: ResolvableString;
 };
-
-export interface AppRequestAuthorizationBasicAuthProps {}
-
-export interface AppRequestAuthorizationBasicAuthEmits {
-    (e: 'update:modelValue', value: AppRequestAuthorizationBasicAuthModel): void;
-}
 
 /*
  * Component Setup.
  */
-
-defineProps<AppRequestAuthorizationBasicAuthProps>();
-const emit = defineEmits<AppRequestAuthorizationBasicAuthEmits>();
 
 const model = defineModel<AppRequestAuthorizationBasicAuthModel>({
     default: () => ({
         username: '',
         password: '',
     }),
-});
-
-/*
- * State.
- */
-
-const username = ref(model.value.username);
-const password = ref(model.value.password);
-
-/*
- * Watchers.
- */
-
-watch(username, newValue => {
-    model.value.username = newValue;
-    emit('update:modelValue', model.value);
-});
-
-watch(password, newValue => {
-    model.value.password = newValue;
-    emit('update:modelValue', model.value);
 });
 </script>
 
@@ -65,11 +35,11 @@ watch(password, newValue => {
         >
             Username
         </label>
-        <AppInput
+        <EnvironmentAwareInput
             id="username"
-            v-model="username"
+            v-model="model.username"
             placeholder="-"
-            class="col-span-2 h-full rounded-none border-0 text-xs shadow-none focus:ring-0 focus-visible:ring-0"
+            input-class="col-span-2 h-full rounded-none border-0 text-xs shadow-none focus:ring-0 focus-visible:ring-0"
         />
     </div>
     <div class="grid h-8 grid-cols-3 border-b">
@@ -79,11 +49,12 @@ watch(password, newValue => {
         >
             Password
         </label>
-        <AppInput
+        <EnvironmentAwareInput
             id="password"
-            v-model="password"
+            v-model="model.password"
+            type="password"
             placeholder="-"
-            class="col-span-2 h-full rounded-none border-0 text-xs shadow-none focus:ring-0 focus-visible:ring-0"
+            input-class="col-span-2 h-full rounded-none border-0 text-xs shadow-none focus:ring-0 focus-visible:ring-0"
         />
     </div>
 </template>

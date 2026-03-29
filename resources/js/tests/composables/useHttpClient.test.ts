@@ -1,13 +1,9 @@
 import { useHttpClient } from '@/composables/request/useHttpClient';
 import { AuthorizationType } from '@/interfaces/generated';
-import { ParameterType } from '@/interfaces/ui';
-import {
-    createMockPendingRequest,
-    createMockRelayProxyResponse,
-} from '@/tests/_utils/test-factories';
-import axios, { AxiosError } from 'axios';
+import { createMockRelayProxyResponse } from '@/tests/_utils/test-factories';
+import axios from 'axios';
 import type { Mocked } from 'vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
  * Fixtures.
@@ -27,10 +23,43 @@ vi.mock('@/stores', () => ({
     useConfigStore: () => mockConfigStore,
 }));
 
+import { ParameterType } from '@/interfaces';
+import { RequestBodyTypeEnum, type PendingRequest } from '@/interfaces/http';
+
+const createMockPendingRequest = (
+    overrides: Partial<PendingRequest> = {},
+): PendingRequest => ({
+    method: 'GET',
+    endpoint: { raw: '/api/users', resolved: '/api/users' },
+    headers: [],
+    body: {
+        GET: {
+            [RequestBodyTypeEnum.JSON]: null,
+        },
+    },
+    queryParameters: [],
+    payloadType: RequestBodyTypeEnum.JSON,
+    authorization: { type: AuthorizationType.None },
+    schema: { shape: {}, extractionErrors: null },
+    supportedRoutes: [],
+    routeDefinition: {
+        method: 'GET',
+        endpoint: '/api/users',
+        shortEndpoint: '/api/users',
+        schema: { shape: {}, extractionErrors: null },
+    },
+    transactionMode: false,
+    ...overrides,
+});
+
 describe('useHttpClient', () => {
     /*
      * Initialization tests.
      */
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
     describe('Initialization', () => {
         it('should initialize with correct default state', () => {
@@ -52,17 +81,23 @@ describe('useHttpClient', () => {
         it('should build request URL correctly', () => {
             // Arrange
 
-            const { buildRequestUrl } = useHttpClient();
+            const { buildUrlFromRequest } = useHttpClient();
+
             const request = createMockPendingRequest({
-                endpoint: 'api/users',
+                endpoint: { raw: 'api/users', resolved: 'api/users' },
                 authorization: {
                     type: AuthorizationType.None,
                 },
                 queryParameters: [
-                    { key: 'page', value: '1', enabled: true, type: ParameterType.Text },
+                    {
+                        key: 'page',
+                        value: { raw: '1', resolved: '1' },
+                        enabled: true,
+                        type: ParameterType.Text,
+                    },
                     {
                         key: 'limit',
-                        value: '10',
+                        value: { raw: '10', resolved: '10' },
                         enabled: true,
                         type: ParameterType.Text,
                     },
@@ -71,7 +106,7 @@ describe('useHttpClient', () => {
 
             // Act
 
-            const url = buildRequestUrl(request);
+            const url = buildUrlFromRequest(request);
 
             // Assert
 
@@ -81,9 +116,10 @@ describe('useHttpClient', () => {
         it('should handle endpoint with leading slashes', () => {
             // Arrange
 
-            const { buildRequestUrl } = useHttpClient();
+            const { buildUrlFromRequest } = useHttpClient();
+
             const request = createMockPendingRequest({
-                endpoint: '//api/users',
+                endpoint: { raw: '//api/users', resolved: '//api/users' },
                 authorization: {
                     type: AuthorizationType.None,
                 },
@@ -91,7 +127,7 @@ describe('useHttpClient', () => {
 
             // Act
 
-            const url = buildRequestUrl(request);
+            const url = buildUrlFromRequest(request);
 
             // Assert
 
@@ -104,13 +140,16 @@ describe('useHttpClient', () => {
             // Arrange
 
             const request = createMockPendingRequest({
-                endpoint: 'api/users',
                 method: 'POST',
                 body: {
                     POST: {
-                        json: JSON.stringify({ name: 'John' }),
+                        [RequestBodyTypeEnum.JSON]: {
+                            raw: JSON.stringify({ name: 'John' }),
+                            resolved: JSON.stringify({ name: 'John' }),
+                        },
                     },
                 },
+                headers: [],
             });
 
             const mockRelayResponse = createMockRelayProxyResponse({
@@ -143,8 +182,7 @@ describe('useHttpClient', () => {
 
             const { executeRequest } = useHttpClient();
             const request = createMockPendingRequest();
-            const cancelError = new AxiosError('Request cancelled');
-            cancelError.code = 'ERR_CANCELED';
+            const cancelError = { code: 'ERR_CANCELED', message: 'Canceled' };
 
             mockedAxios.post.mockRejectedValue(cancelError);
 
@@ -155,6 +193,40 @@ describe('useHttpClient', () => {
             // Assert
 
             expect(result).toBeNull();
+        });
+
+        it('should resolve ResolvableString and environment variables before sending', async () => {
+            // Arrange
+
+            const request = createMockPendingRequest({
+                endpoint: { raw: '/api/{{resource}}', resolved: '/api/users' },
+                method: 'POST',
+                body: {
+                    POST: {
+                        [RequestBodyTypeEnum.JSON]: {
+                            raw: '{"name": "{{name}}"}',
+                            resolved: '{"name": "John"}',
+                        },
+                    },
+                },
+            });
+
+            mockedAxios.post.mockResolvedValue({
+                data: JSON.stringify(createMockRelayProxyResponse({ statusCode: 200 })),
+            });
+
+            const { executeRequest } = useHttpClient();
+
+            // Act
+
+            await executeRequest(request);
+
+            // Assert
+
+            const formData = mockedAxios.post.mock.calls[0][1] as FormData;
+
+            expect(formData.get('endpoint')).toBe('https://api.example.com/api/users');
+            expect(formData.get('body')).toBe('{"name": "John"}');
         });
     });
 });

@@ -128,4 +128,44 @@ export class BasePage {
 
         return { headerKey, headerValue };
     }
+
+    /*
+     * Environment Management.
+     */
+
+    async goToEnvironments() {
+        await this.page.getByRole('button', { name: 'Environments' }).click();
+        await expect(this.page.getByTestId('environment-page')).toBeVisible();
+    }
+
+    async addCollection() {
+        await this.page.getByTestId('add-collection-btn').click();
+    }
+
+    async renameActiveCollection(name: string) {
+        // Since we use EditableRoot from reka-ui, we need to click the preview to edit.
+        const editor = this.page.getByTestId('collection-name-editor');
+        await editor.click({ force: true });
+        
+        const input = editor.locator('input');
+        await input.fill(name);
+        await input.press('Enter');
+    }
+
+    async setVariable(index: number, key: string, value: string) {
+        const container = this.page.getByTestId('kv-container');
+        const keyInput = container.getByTestId('kv-key').nth(index);
+        const valueInput = container.getByTestId('kv-value').nth(index);
+
+        await keyInput.fill(key);
+        await valueInput.fill(value);
+    }
+
+    async selectCollection(name: string) {
+        await this.page.getByTestId('collection-item').filter({ hasText: name }).click();
+    }
+
+    async goToHttpClient() {
+        await this.page.getByRole('button', { name: 'HTTP Client' }).click();
+    }
 }

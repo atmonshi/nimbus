@@ -39,8 +39,6 @@ jobs:
       - name: Checkout code
         if: needs.changes.outputs.php == 'true' && !env.ACT
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup PHP
         if: needs.changes.outputs.php == 'true'

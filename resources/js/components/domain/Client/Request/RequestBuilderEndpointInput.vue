@@ -4,18 +4,20 @@
  * @description The endpoint input field and send button for the request builder.
  */
 import { AppButton } from '@/components/base/button';
-import { AppInput } from '@/components/base/input';
 import {
     AppPopover,
     AppPopoverAnchor,
     AppPopoverContent,
 } from '@/components/base/popover';
-import { useRoutePlaceholderDetection } from '@/composables/request/useRoutePlaceholderDetection';
+import EnvironmentAwareInput from '@/components/common/EnvironmentAwareInput.vue';
+
+import { useRouteParameterParsing } from '@/composables/request/useRouteParameterParsing';
 import { useRouteSegmentSelection } from '@/composables/request/useRouteSegmentSelection';
+import type { ResolvableString } from '@/interfaces/common/resolvable-string';
 import { useRequestStore } from '@/stores';
 import { CornerDownLeftIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import RequestBuilderEndpointPlaceholderWarningContent from './RequestBuilderEndpointPlaceholderWarningContent.vue';
+import RequestBuilderEndpointParameterWarningContent from './RequestBuilderEndpointParameterWarningContent.vue';
 
 /*
  * Stores.
@@ -27,20 +29,28 @@ const requestStore = useRequestStore();
  * State.
  */
 
-const showPlaceholderWarning = ref(false);
+const showParameterWarning = ref(false);
 
 /*
- * Computed & Methods.
+ * Computed.
  */
 
 const pendingRequestData = computed(() => requestStore.pendingRequestData);
 
 const endpoint = computed({
-    get: () => pendingRequestData.value?.endpoint ?? '',
-    set: (value: string) => requestStore.updateRequestEndpoint(value),
+    get: () => pendingRequestData.value?.endpoint ?? { raw: '', resolved: '' },
+    set: (value: ResolvableString) => requestStore.updateRequestEndpoint(value),
 });
 
-const { placeholders, hasPlaceholders } = useRoutePlaceholderDetection(endpoint);
+/*
+ * Composables.
+ */
+
+const { parameters, hasParameters } = useRouteParameterParsing(endpoint);
+
+/*
+ * Actions.
+ */
 
 const { handleClick: autoSelectRouteVariableSegmentWhenApplicable } =
     useRouteSegmentSelection({ endpoint });
@@ -50,13 +60,13 @@ const executeCurrentRequest = async function () {
         return;
     }
 
-    if (hasPlaceholders.value) {
-        showPlaceholderWarning.value = true;
+    if (hasParameters.value) {
+        showParameterWarning.value = true;
 
         return;
     }
 
-    showPlaceholderWarning.value = false;
+    showParameterWarning.value = false;
 
     await requestStore.executeCurrentRequest();
 };
@@ -72,8 +82,9 @@ const executeCurrentRequestWhenEnterIsPressed = (event: KeyboardEvent) => {
 </script>
 
 <template>
-    <div class="flex flex-1 items-center">
-        <AppInput
+    <div class="flex min-w-0 flex-1 items-center">
+        <!-- Endpoint Input with Rich Env Variables Highlighting -->
+        <EnvironmentAwareInput
             v-model="endpoint"
             variant="toolbar"
             class="h-full flex-1 text-xs"
@@ -82,8 +93,9 @@ const executeCurrentRequestWhenEnterIsPressed = (event: KeyboardEvent) => {
             @click="autoSelectRouteVariableSegmentWhenApplicable"
             @keydown="executeCurrentRequestWhenEnterIsPressed"
         />
+
         <div class="flex gap-2 pr-2">
-            <AppPopover v-model:open="showPlaceholderWarning">
+            <AppPopover v-model:open="showParameterWarning">
                 <AppPopoverAnchor as-child>
                     <AppButton
                         size="xs"
@@ -100,8 +112,8 @@ const executeCurrentRequestWhenEnterIsPressed = (event: KeyboardEvent) => {
                 </AppPopoverAnchor>
 
                 <AppPopoverContent align="start" class="w-80 p-1">
-                    <RequestBuilderEndpointPlaceholderWarningContent
-                        :placeholders="placeholders"
+                    <RequestBuilderEndpointParameterWarningContent
+                        :parameters="parameters"
                     />
                 </AppPopoverContent>
             </AppPopover>

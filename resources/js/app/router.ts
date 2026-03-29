@@ -12,6 +12,11 @@ const routes = [
         component: () => import('@/pages/Settings.vue'),
         name: 'settings',
     },
+    {
+        path: '/environments',
+        component: () => import('@/pages/Environment.vue'),
+        name: 'environments',
+    },
 
     /*
      * Catch-all Route for 404 Handling.

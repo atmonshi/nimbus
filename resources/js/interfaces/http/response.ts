@@ -1,4 +1,5 @@
-import type { HttpHeadersArray, RequestHeader, ResponseCookie } from '@/interfaces/http';
+import type { HttpHeadersArray, ResponseCookie } from '@/interfaces/http';
+import type { ResponseHeader } from '@/interfaces/http/headers';
 import type { STATUS } from '@/interfaces/http/status';
 
 export interface Response {
@@ -7,7 +8,7 @@ export interface Response {
     statusText: string;
     body: string;
     sizeInBytes: number;
-    headers: RequestHeader[];
+    headers: ResponseHeader[];
     cookies: ResponseCookie[];
     timestamp: number;
 }

@@ -123,7 +123,7 @@ describe('ResponseStatus', () => {
 
             const mockRequest: Request = {
                 method: 'GET',
-                endpoint: '/api/test',
+                endpoint: { raw: '/api/test', resolved: '/api/test' },
                 headers: [],
                 queryParameters: [],
                 body: null,

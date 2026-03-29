@@ -3,22 +3,14 @@
  * @component RequestAuthorizationBearer
  * @description Input field for Bearer Token authentication.
  */
-import { AppInput } from '@/components/base/input';
-import { type ModelRef } from 'vue';
-
-/*
- * Types & Interfaces.
- */
-
-export interface AppRequestAuthorizationBearerProps {}
+import EnvironmentAwareInput from '@/components/common/EnvironmentAwareInput.vue';
+import type { ResolvableString } from '@/interfaces/common/resolvable-string';
 
 /*
  * Component Setup.
  */
 
-defineProps<AppRequestAuthorizationBearerProps>();
-
-const model: ModelRef<string> = defineModel<string>({
+const model = defineModel<ResolvableString>({
     default: () => '',
 });
 </script>
@@ -28,11 +20,11 @@ const model: ModelRef<string> = defineModel<string>({
         <label class="px-panel flex h-8 items-center border-r py-1 text-xs" for="bearer">
             Bearer Token
         </label>
-        <AppInput
+        <EnvironmentAwareInput
             id="bearer"
             v-model="model"
             placeholder="Token"
-            class="col-span-2 h-full rounded-none border-0 text-xs shadow-none focus:ring-0 focus-visible:ring-0"
+            input-class="col-span-2 h-full rounded-none border-0 text-xs shadow-none focus:ring-0 focus-visible:ring-0"
         />
     </div>
 </template>

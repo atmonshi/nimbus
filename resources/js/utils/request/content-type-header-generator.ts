@@ -1,4 +1,4 @@
-import type { RequestHeader } from '@/interfaces/http';
+import type { HttpHeaders } from '@/interfaces/http';
 import { RequestBodyTypeEnum } from '@/interfaces/http';
 
 /**
@@ -85,13 +85,13 @@ export function getMimeTypeForPayloadType(
  */
 export function generateContentTypeHeader(
     payloadType: RequestBodyTypeEnum,
-    existingHeaders: RequestHeader[],
-): RequestHeader[] {
+    existingHeaders: HttpHeaders[],
+): HttpHeaders[] {
     const mimeType = getMimeTypeForPayloadType(payloadType);
 
     // Find existing Content-Type header (case-insensitive)
     const contentTypeIndex = existingHeaders.findIndex(
-        (header: RequestHeader) => header.key.toLowerCase() === 'content-type',
+        (header: HttpHeaders) => header.key.toLowerCase() === 'content-type',
     );
 
     // If no MIME type for this payload type, remove Content-Type if it exists
@@ -112,11 +112,20 @@ export function generateContentTypeHeader(
     if (contentTypeIndex !== -1) {
         return [
             ...existingHeaders.slice(0, contentTypeIndex),
-            { key: 'content-type', value: mimeType },
+            {
+                key: 'content-type',
+                value: mimeType,
+            },
             ...existingHeaders.slice(contentTypeIndex + 1),
         ];
     }
 
     // Add new Content-Type header
-    return [...existingHeaders, { key: 'content-type', value: mimeType }];
+    return [
+        ...existingHeaders,
+        {
+            key: 'content-type',
+            value: mimeType,
+        },
+    ];
 }

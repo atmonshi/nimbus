@@ -101,7 +101,7 @@ const copyPublishCommand = async () => {
             <!-- Content -->
             <template #content>
                 <div class="h-full overflow-auto">
-                    <div class="p-6">
+                    <div class="p-panel">
                         <div class="max-w-6xl space-y-12">
                             <!-- Server Configuration Section -->
                             <div>

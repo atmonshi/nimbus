@@ -1,3 +1,4 @@
+import type { ResolvableString } from '@/interfaces/common/resolvable-string';
 import { RequestBodyTypeEnum } from '@/interfaces/http';
 import type { PayloadObject } from '@/interfaces/schema/payload';
 import { convertPayloadToFormData } from '@/utils/http';
@@ -24,12 +25,18 @@ export const convertPayloadToPlainText = (payload: PayloadObject): string => {
 export const serializeSchemaPayload = (
     payload: PayloadObject,
     type: RequestBodyTypeEnum,
-): string | FormData | null => {
+): ResolvableString | FormData | null => {
     switch (type) {
-        case RequestBodyTypeEnum.JSON:
-            return convertPayloadToJson(payload);
-        case RequestBodyTypeEnum.PLAIN_TEXT:
-            return convertPayloadToPlainText(payload);
+        case RequestBodyTypeEnum.JSON: {
+            const json = convertPayloadToJson(payload);
+
+            return { raw: json, resolved: json };
+        }
+        case RequestBodyTypeEnum.PLAIN_TEXT: {
+            const text = convertPayloadToPlainText(payload);
+
+            return { raw: text, resolved: text };
+        }
         case RequestBodyTypeEnum.FORM_DATA:
             return convertPayloadToFormData(payload);
         default:

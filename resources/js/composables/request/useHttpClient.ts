@@ -1,5 +1,6 @@
 import { httpClientConfig } from '@/config';
-import type { ParameterContract, RequestHeader } from '@/interfaces';
+import type { AuthorizationContract, ParameterContract } from '@/interfaces';
+import { AuthorizationType } from '@/interfaces/generated';
 import type {
     HttpHeaders,
     PendingRequest,
@@ -7,6 +8,7 @@ import type {
     Response,
 } from '@/interfaces/http';
 import { useConfigStore } from '@/stores';
+import { buildRequestUrl } from '@/utils';
 import { convertPayloadToFormData, getStatusGroup } from '@/utils/http';
 import { generateContentTypeHeader } from '@/utils/request/content-type-header-generator';
 import type { AxiosError, AxiosResponse } from 'axios';
@@ -21,7 +23,7 @@ export interface RequestResult {
 export interface UseHttpClientResult {
     executeRequest: (request: PendingRequest) => Promise<RequestResult | null>;
     cancelCurrentRequest: () => void;
-    buildRequestUrl: (request: PendingRequest) => string;
+    buildUrlFromRequest: (request: PendingRequest) => string;
     isExecuting: DeepReadonly<Ref<boolean>>;
 }
 
@@ -46,25 +48,17 @@ export function useHttpClient(): UseHttpClientResult {
      * Utilities.
      */
 
-    const buildRequestUrl = (request: PendingRequest): string => {
-        const baseUrl = configStore.apiUrl;
-
+    const buildUrlFromRequest = (request: PendingRequest): string => {
         // Remove leading slashes to prevent double slashes in final URL
-        const endpoint = request.endpoint.replace(/^\/+/, '');
+        const endpoint = request.endpoint.resolved.replace(/^\/+/, '');
 
-        const url = new URL(`${baseUrl}/${endpoint}`);
-
-        // Only append enabled parameters with non-empty keys to avoid malformed URLs
-        request.queryParameters
-            .filter(
-                (parameter: ParameterContract) =>
-                    parameter.enabled && parameter.key.trim(),
-            )
-            .forEach((parameter: ParameterContract) => {
-                url.searchParams.append(parameter.key, parameter.value);
-            });
-
-        return url.toString();
+        return buildRequestUrl(
+            configStore.apiUrl,
+            endpoint,
+            request.queryParameters.filter(
+                (parameter: ParameterContract) => parameter.enabled,
+            ),
+        );
     };
 
     /**
@@ -72,12 +66,44 @@ export function useHttpClient(): UseHttpClientResult {
      */
     const getMemoizedBody = (request: PendingRequest) => {
         // First extraction: get body for the specific HTTP method (GET, POST, etc.)
-        const body = request.body[request.method] ?? null;
+        const methodBodies = request.body[request.method] ?? null;
 
         // Second extraction: get body for the specific payload type (JSON, FormData, etc.)
         // This double extraction is necessary due to the nested memoization structure
-        return body ? (body[request.payloadType] ?? null) : null;
+        const body = methodBodies ? (methodBodies[request.payloadType] ?? null) : null;
+
+        if (body instanceof FormData) {
+            return body;
+        }
+
+        if (body === null) {
+            return null;
+        }
+
+        return body.resolved;
     };
+
+    function buildRelayAuthorization(authorization: AuthorizationContract) {
+        switch (authorization.type) {
+            case AuthorizationType.Basic:
+                return {
+                    type: authorization.type,
+                    value: {
+                        username: authorization.value.username.resolved,
+                        password: authorization.value.password.resolved,
+                    },
+                };
+
+            case AuthorizationType.Bearer:
+                return {
+                    type: authorization.type,
+                    value: authorization.value.resolved,
+                };
+
+            default:
+                return authorization;
+        }
+    }
 
     const createRelayPayload = (request: PendingRequest) => {
         // Generate Content-Type header just before making the request
@@ -90,18 +116,18 @@ export function useHttpClient(): UseHttpClientResult {
                         parameter.enabled && parameter.key.trim() !== '',
                 )
                 .map(
-                    (parameter): RequestHeader => ({
+                    (parameter): HttpHeaders => ({
                         key: parameter.key,
-                        value: parameter.value,
+                        value: parameter.value.resolved,
                     }),
                 ),
         );
 
         return {
-            endpoint: buildRequestUrl(request),
+            endpoint: buildUrlFromRequest(request),
             method: request.method,
             headers: headersWithContentType,
-            authorization: request.authorization,
+            authorization: buildRelayAuthorization(request.authorization),
             body: getMemoizedBody(request),
         };
     };
@@ -245,7 +271,7 @@ export function useHttpClient(): UseHttpClientResult {
         // Actions
         executeRequest,
         cancelCurrentRequest,
-        buildRequestUrl,
+        buildUrlFromRequest,
 
         // State
         isExecuting: readonly(isExecuting),

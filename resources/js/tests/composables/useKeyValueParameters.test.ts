@@ -57,7 +57,7 @@ describe('useKeyValueParameters', () => {
             expect(composable.parameters.value[0]).toMatchObject({
                 type: ParameterType.Text,
                 key: '',
-                value: '',
+                value: { raw: '', resolved: '' },
                 enabled: true,
             });
         });
@@ -86,7 +86,7 @@ describe('useKeyValueParameters', () => {
                     id: 1,
                     type: ParameterType.Text,
                     key: 'p1',
-                    value: 'v1',
+                    value: { raw: 'v1', resolved: 'v1' },
                     enabled: true,
                 },
             ];

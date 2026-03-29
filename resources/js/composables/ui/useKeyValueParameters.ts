@@ -63,7 +63,7 @@ export function useKeyValueParameters<T extends ParameterContract>(
         type: ParameterType.Text,
         id,
         key: '',
-        value: '',
+        value: { raw: '', resolved: '' },
         enabled: true,
     });
 

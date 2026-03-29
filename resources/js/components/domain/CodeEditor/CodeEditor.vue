@@ -7,6 +7,7 @@ import {
     fallbackExtensions,
     jsonExtensions,
 } from '@/components/domain/CodeEditor/extensions';
+import type { Extension } from '@codemirror/state';
 import type { JSONSchema7 } from 'json-schema';
 import { type PrimitiveProps } from 'reka-ui';
 import { computed, type HTMLAttributes } from 'vue';
@@ -24,6 +25,7 @@ export interface AppCodeEditorProps extends PrimitiveProps {
     disabled?: boolean;
     validationSchema?: JSONSchema7;
     autoHeight?: boolean;
+    customExtensions?: Extension[];
 }
 
 /*
@@ -37,6 +39,7 @@ const props = withDefaults(defineProps<AppCodeEditorProps>(), {
     class: '',
     validationSchema: undefined,
     autoHeight: false,
+    customExtensions: () => [],
 });
 
 const model = defineModel<string>({
@@ -49,10 +52,13 @@ const model = defineModel<string>({
 
 const extensions = computed(() => {
     if (props.language === 'json') {
-        return jsonExtensions(props.readonly, props.validationSchema);
+        return [
+            ...jsonExtensions(props.readonly, props.validationSchema),
+            ...props.customExtensions,
+        ];
     }
 
-    return fallbackExtensions(props.readonly);
+    return [...fallbackExtensions(props.readonly), ...props.customExtensions];
 });
 
 const updateModel = (value: string) => {
