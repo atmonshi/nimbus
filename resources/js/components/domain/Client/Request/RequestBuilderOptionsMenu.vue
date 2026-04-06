@@ -172,12 +172,7 @@ const openShareableLinkDialog = () => {
                                 </AppPopoverContent>
                             </AppPopover>
                         </div>
-                        <AppSwitch
-                            v-model="transactionMode"
-                            :variant="{ type: 'compact', default: 'default' }"
-                            class="ml-2"
-                            @click.stop
-                        />
+                        <AppSwitch v-model="transactionMode" @click.stop />
                     </div>
                 </AppDropdownMenuItem>
             </AppDropdownMenuGroup>
