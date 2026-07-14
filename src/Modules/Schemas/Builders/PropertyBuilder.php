@@ -68,7 +68,7 @@ class PropertyBuilder
             SchemaPropertyType::ARRAY => new ArraySchemaProperty(
                 name: $field,
                 required: $schemaMetadata['required'],
-                schemaProperty: null, // <- Items will be set later by SchemaBuilder if needed.
+                // Items ($schemaProperty) will be set later by SchemaBuilder if needed.
             ),
             SchemaPropertyType::OBJECT => new ObjectSchemaProperty(
                 name: $field,

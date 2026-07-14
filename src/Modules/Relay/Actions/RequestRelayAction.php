@@ -52,13 +52,13 @@ class RequestRelayAction
         $durationInMs = $this->calculateDuration($start);
 
         return new RelayedRequestResponseData(
-            statusCode: $response->getStatusCode(),
-            statusText: $this->getStatusTextFromCode($response->getStatusCode()),
+            statusCode: $response->status(),
+            statusText: $this->getStatusTextFromCode($response->status()),
             body: PrintableResponseBody::fromResponse($response),
-            headers: $response->getHeaders(),
+            headers: $response->headers(),
             durationMs: $durationInMs,
             timestamp: CarbonImmutable::now()->getTimestamp(),
-            cookies: $this->processCookies($response->getHeader('Set-Cookie')),
+            cookies: $this->processCookies($response->toPsrResponse()->getHeader('Set-Cookie')),
         );
     }
 
@@ -69,7 +69,7 @@ class RequestRelayAction
         $queryParameters = $requestRelayData->queryParameters;
         $requestBody = $requestRelayData->body;
 
-        if (is_array($requestBody) && in_array($requestRelayData->method, ['get', 'head'])) {
+        if (is_array($requestBody) && in_array($requestRelayData->method, ['get', 'head'], true)) {
             $queryParameters = array_merge(
                 $queryParameters,
                 $requestBody,
