@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 use Sunchayn\Nimbus\Modules\Routes\Extractor\Ast\ConvertNodeToConcreteValue;
 use Sunchayn\Nimbus\Modules\Routes\Extractor\Ast\ValidateCallVisitor;
 use Sunchayn\Nimbus\Modules\Schemas\Collections\Ruleset;
+use Sunchayn\Nimbus\Tests\App\Modules\Routes\Extractors\Ast\Stubs\SideEffectStub;
 use Sunchayn\Nimbus\Tests\App\Modules\Routes\Extractors\Stubs\StatusEnumStub;
 
 #[CoversClass(ValidateCallVisitor::class)]
@@ -139,6 +140,90 @@ class ValidateCallVisitorUnitTest extends TestCase
             'methodName' => 'nested_methods_calls',
             'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
             'expectedRules' => [], // <- Currently this is not supported.
+        ];
+
+        yield 'static call assignment with side effects' => [
+            'methodName' => 'call_with_static_side_effect_assignment',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [
+                'foobar' => 'required|string',
+            ],
+        ];
+
+        yield 'new instance assignment with side effects' => [
+            'methodName' => 'call_with_new_side_effect_assignment',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [
+                'foobar' => 'required|string',
+            ],
+        ];
+
+        yield 'static keyword assignment' => [
+            'methodName' => 'call_with_static_keyword_assignment',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [
+                'foobar' => 'required|string',
+            ],
+        ];
+
+        yield 'rules from self:: static call' => [
+            'methodName' => 'call_with_self_validation_rules',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [
+                'name' => 'required|string',
+                'email' => 'required|email',
+            ],
+        ];
+
+        yield 'rules from static:: static call' => [
+            'methodName' => 'call_with_static_validation_rules',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [
+                'name' => 'required|string',
+                'email' => 'required|email',
+            ],
+        ];
+    }
+
+    #[DataProvider('sideEffectScenariosDataProvider')]
+    public function test_it_does_not_execute_application_code_while_building_variable_context(
+        string $methodName,
+    ): void {
+        // Arrange
+
+        SideEffectStub::reset();
+
+        $parser = (new ParserFactory)->createForNewestSupportedVersion();
+        $ast = $parser->parse(file_get_contents(__DIR__.'/Stubs/controller.stub.php'));
+
+        $visitor = new ValidateCallVisitor($methodName);
+        $traverser = new NodeTraverser;
+        $traverser->addVisitor($visitor);
+
+        // Act
+
+        $traverser->traverse($ast);
+
+        // Assert
+
+        $this->assertFalse(
+            SideEffectStub::$called,
+            'Route extraction must not execute assigned StaticCall/New_ expressions.',
+        );
+        $this->assertEquals(
+            Ruleset::fromLaravelRules(['foobar' => 'required|string']),
+            $visitor->getRules(),
+        );
+    }
+
+    public static function sideEffectScenariosDataProvider(): Generator
+    {
+        yield 'static call assignment' => [
+            'methodName' => 'call_with_static_side_effect_assignment',
+        ];
+
+        yield 'new instance assignment' => [
+            'methodName' => 'call_with_new_side_effect_assignment',
         ];
     }
 }
