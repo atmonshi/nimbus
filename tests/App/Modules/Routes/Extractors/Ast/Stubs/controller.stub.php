@@ -106,6 +106,45 @@ class TestController
         return response()->json('Hi');
     }
 
+    public function call_with_static_side_effect_assignment(Request $request): void
+    {
+        // Must not execute during extraction — previously wrote to the DB / ran app code.
+        $user = \Sunchayn\Nimbus\Tests\App\Modules\Routes\Extractors\Ast\Stubs\SideEffectStub::boom();
+
+        $validated = $request->validate([
+            'foobar' => 'required|string',
+        ]);
+    }
+
+    public function call_with_new_side_effect_assignment(Request $request): void
+    {
+        $instance = new \Sunchayn\Nimbus\Tests\App\Modules\Routes\Extractors\Ast\Stubs\SideEffectStub;
+
+        $validated = $request->validate([
+            'foobar' => 'required|string',
+        ]);
+    }
+
+    public function call_with_static_keyword_assignment(Request $request): void
+    {
+        // Relative keywords must not fatal ("Class 'static' not found") during extraction.
+        $query = static::missingMethodThatWouldFatal();
+
+        $validated = $request->validate([
+            'foobar' => 'required|string',
+        ]);
+    }
+
+    public function call_with_self_validation_rules(Request $request): void
+    {
+        $validated = $request->validate(self::getValidationRules());
+    }
+
+    public function call_with_static_validation_rules(Request $request): void
+    {
+        $validated = $request->validate(static::getValidationRules());
+    }
+
     private function validateFormData(Request $request)
     {
         return $request->validate([
@@ -129,6 +168,14 @@ class TestController
             'fooobazz' => "{$interpolation}|email{$interpolation2}",
             'baz' => "{$interpolation}|present".'|'.'email',
             'foobaz' => $rule,
+        ];
+    }
+
+    private static function getValidationRules(): array
+    {
+        return [
+            'name' => 'required|string',
+            'email' => 'required|email',
         ];
     }
 }
