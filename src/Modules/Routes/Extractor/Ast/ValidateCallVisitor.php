@@ -234,9 +234,9 @@ class ValidateCallVisitor extends NodeVisitorAbstract
      * NameResolver rewrites self/static to the FQCN; accept both so helpers like
      * self::getValidationRules() can be extracted via AST without invoking them.
      */
-    private function isCurrentClassReference(Name $class): bool
+    private function isCurrentClassReference(Name $name): bool
     {
-        $resolved = ltrim($class->toString(), '\\');
+        $resolved = ltrim($name->toString(), '\\');
 
         if (in_array(strtolower($resolved), ['self', 'static'], true)) {
             return true;
