@@ -5,11 +5,13 @@ namespace Sunchayn\Nimbus\Tests\App\Modules\Routes\Extractors\Ast;
 use Generator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\In;
+use PhpParser\Node\Name;
 use PhpParser\NodeTraverser;
 use PhpParser\ParserFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use Sunchayn\Nimbus\Modules\Routes\Extractor\Ast\ConvertNodeToConcreteValue;
 use Sunchayn\Nimbus\Modules\Routes\Extractor\Ast\ValidateCallVisitor;
 use Sunchayn\Nimbus\Modules\Schemas\Collections\Ruleset;
@@ -183,6 +185,90 @@ class ValidateCallVisitorUnitTest extends TestCase
                 'email' => 'required|email',
             ],
         ];
+
+        yield 'rules from explicit class static call' => [
+            'methodName' => 'call_with_explicit_class_validation_rules',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [
+                'name' => 'required|string',
+                'email' => 'required|email',
+            ],
+        ];
+
+        yield 'unknown self:: helper yields no rules' => [
+            'methodName' => 'call_with_unknown_self_validation_rules',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [],
+        ];
+
+        yield 'variable class static call yields no rules' => [
+            'methodName' => 'call_with_variable_class_static_validation_rules',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [],
+        ];
+
+        yield 'variable method nested call yields no rules' => [
+            'methodName' => 'call_with_variable_method_nested_rules',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [],
+        ];
+
+        yield 'foreign class static call with matching method name yields no rules' => [
+            'methodName' => 'call_with_foreign_class_validation_rules',
+            'phpCode' => file_get_contents(__DIR__.'/Stubs/controller.stub.php'),
+            'expectedRules' => [],
+        ];
+    }
+
+    public function test_it_uses_short_class_name_when_namespaced_name_is_unavailable(): void
+    {
+        // Arrange — bypass NameResolver so Class_::namespacedName is unset.
+
+        $parser = (new ParserFactory)->createForNewestSupportedVersion();
+        $ast = $parser->parse(<<<'PHP'
+            <?php
+
+            class CoverageController
+            {
+                public function action(): void
+                {
+                }
+            }
+            PHP);
+
+        $visitor = new ValidateCallVisitor('action');
+        $reflection = new ReflectionClass($visitor);
+        $gatherClassMethods = $reflection->getMethod('gatherClassMethods');
+        $gatherClassMethods->setAccessible(true);
+
+        // Act
+
+        $gatherClassMethods->invoke($visitor, $ast);
+
+        // Assert
+
+        $currentClassName = $reflection->getProperty('currentClassName');
+        $currentClassName->setAccessible(true);
+
+        $this->assertSame('CoverageController', $currentClassName->getValue($visitor));
+    }
+
+    public function test_it_rejects_static_calls_when_enclosing_class_name_is_unknown(): void
+    {
+        // Arrange
+
+        $visitor = new ValidateCallVisitor('action');
+        $reflection = new ReflectionClass($visitor);
+        $isCurrentClassReference = $reflection->getMethod('isCurrentClassReference');
+        $isCurrentClassReference->setAccessible(true);
+
+        // Act — currentClassName stays null when the enclosing class cannot be named.
+
+        $result = $isCurrentClassReference->invoke($visitor, new Name('SomeOtherClass'));
+
+        // Assert
+
+        $this->assertFalse($result);
     }
 
     #[DataProvider('sideEffectScenariosDataProvider')]

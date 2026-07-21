@@ -276,13 +276,10 @@ class ValidateCallVisitor extends NodeVisitorAbstract
             return;
         }
 
-        $rules = ConvertNodeToConcreteValue::process($returnStatement->expr, $this->context);
-
-        if (! is_array($rules)) {
-            return;
-        }
-
-        $this->rules = Ruleset::fromLaravelRules($rules);
+        // isArrayReturn() already guarantees an array literal; process() keeps it as array.
+        $this->rules = Ruleset::fromLaravelRules(
+            ConvertNodeToConcreteValue::process($returnStatement->expr, $this->context)
+        );
     }
 
     private function isArrayReturn(Node\Stmt\Return_ $return): bool
